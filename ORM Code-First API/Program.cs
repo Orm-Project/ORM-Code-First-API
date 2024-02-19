@@ -1,4 +1,4 @@
-using ORM_Code_First_API.Models;
+using ORM_Code_First_API.Context;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,7 +9,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Add services to the container.
+// Add DB Service
 builder.Services.AddDbContext<ORMContext>();
 
 var app = builder.Build();

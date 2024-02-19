@@ -5,6 +5,6 @@
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public int DepartmentId { get; set; }
-        public virtual Department Department { get; set; } = new();
+        public virtual Department Department { get; set; }
     }
 }
