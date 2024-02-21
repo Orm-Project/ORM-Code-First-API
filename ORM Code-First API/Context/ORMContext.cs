@@ -1,10 +1,19 @@
 ﻿using ORM_Code_First_API.Models;
+using ORM_Code_First_API.Returns;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.CodeAnalysis;
+using Microsoft.EntityFrameworkCore.Metadata;
 namespace ORM_Code_First_API.Context
 {
     public class ORMContext : DbContext
     {
+        public DbSet<Department> Departments { get; set; }
+        public DbSet<Team> Teams { get; set; }
         public DbSet<Manager> Managers { get; set; }
+        public DbSet<Employee> Employees { get; set; }
+        public DbSet<Models.Project> Projects { get; set; }
+
+        //public DbSet<DepartmentReturn> departmentReturns { get; set; }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             IConfigurationRoot configuration = new ConfigurationBuilder()
@@ -16,66 +25,23 @@ namespace ORM_Code_First_API.Context
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            // Configure
+            modelBuilder.UseIdentityColumns();
+            modelBuilder.Entity<ModelBase>()
+                .UseTpcMappingStrategy();
 
-            //// Configure Manager Table
-            //modelBuilder.Entity<Manager>().ToTable("Managers");
+            // Configure Primary Key with Identity(1,1)
+            modelBuilder.Entity<ModelBase>()
+                .HasKey(b => b.Id);
+            modelBuilder.Entity<ModelBase>()
+                .Property(b => b.Id)
+                .UseIdentityColumn(1,1);
 
-            //modelBuilder.Entity<Manager>()
-            //    .HasKey(m => m.Id); // Set Primary key
-
-            //modelBuilder.Entity<Manager>()
-            //    .Property(m => m.ManagerDescription);
-
-            modelBuilder.Entity<Manager>() // One to One | Manager To Department
-                .HasOne<Department>(m => m.Department)
-                .WithOne(n => n.Manager);
-            //    .HasForeignKey<Department>(m => m.ManagerId);
-
-
-
-            //// Configure Departments table
-            //modelBuilder.Entity<Department>().ToTable("Departments");
-
-            //modelBuilder.Entity<Department>()
-            //    .HasKey(m => m.Id); // Set Primary key
-
-            //modelBuilder.Entity<Department>()
-            //    .Property(m => m.Name);
-
-
-
-            //// Configure Projects table
-            //modelBuilder.Entity<Project>().ToTable("Projects");
-
-            //modelBuilder.Entity<Project>()
-            //    .HasKey(m => m.Id); // Set Primary key
-
-            //modelBuilder.Entity<Project>()
-            //    .Property(p => p.Name);
-
-            //modelBuilder.Entity<Project>() // Many to one
-            //    .HasOne<Department>(p => p.Department)
-            //    .WithMany(m => m.Projects)
-            //    .HasForeignKey(o => o.DepartmentId);
-
-            //// Configure Employee Table
-
-            //modelBuilder.Entity<Employee>().ToTable("Employees");
-
-            //modelBuilder.Entity<Employee>()
-            //    .HasKey(m => m.Id); // Set Primary key
-
-            //modelBuilder.Entity<Employee>()
-            //    .Property(p => p.FirstName);
-
-            //modelBuilder.Entity<Employee>()
-            //    .Property(p => p.LastName);
-
-            modelBuilder.Entity<Employee>() // Many to one | Employees to Department
-                .HasOne<Department>(p => p.Department)
-                .WithMany(m => m.Employees)
-                .HasForeignKey(o => o.DepartmentId);
+            // Configure Manager ForeignKey
+            modelBuilder.Entity<Manager>()
+                .HasOne(p => p.Team)
+                .WithOne(m => m.Manager)
+                .HasForeignKey<Manager>(o => o.TeamId);
         }
-        public DbSet<ORM_Code_First_API.Models.Department> Department { get; set; } = default!;
     }
 }

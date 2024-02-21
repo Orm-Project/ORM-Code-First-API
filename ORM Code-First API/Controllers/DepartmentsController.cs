@@ -4,9 +4,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using ORM_Code_First_API.Context;
+using ORM_Code_First_API.DTO;
 using ORM_Code_First_API.Models;
+using ORM_Code_First_API.Returns;
 
 namespace ORM_Code_First_API.Controllers
 {
@@ -23,27 +26,72 @@ namespace ORM_Code_First_API.Controllers
 
         // GET: api/Departments
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Department>>> GetDepartment()
+        public async Task<ActionResult<Department>> GetDepartments()
         {
-            return await _context.Department.ToListAsync();
+            try
+            {
+                var returnlist = _context.Departments.ToList();
+                //.FromSqlRaw($"EXEC GetDepartments")
+                //.ToListAsync();
+                //.ExecuteSqlInterpolatedAsync($"EXEC GetDepartments");
+
+                if (returnlist == null || returnlist.Count == 0)
+                {
+                    string notFound = "Ingen data";
+                    return BadRequest($"An error occurred: {notFound}");
+                }
+
+                return Ok(returnlist);
+            }
+            catch (SqlException sqlEx)
+            {
+                // Log the SQL exception details
+                return StatusCode(500, $"SQL Exception: {sqlEx.Message}");
+            }
+            catch (Exception ex)
+            {
+                // Log the general exception details
+                return BadRequest($"An error occurred: {ex.Message}");
+            }
         }
 
-        // GET: api/Departments/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Department>> GetDepartment(int id)
+        // POST: api/Departments
+        [HttpPost]
+        public async Task<ActionResult<OkMessage>> PostDepartment(DepartmentDTO req)
         {
-            var department = await _context.Department.FindAsync(id);
-
-            if (department == null)
+            try
             {
-                return NotFound();
-            }
+                var affectedRows = await _context.Database
+                    .ExecuteSqlInterpolatedAsync($"EXEC CreateDepartment {req.DepartmentName}");
+                //.FromSqlRaw($"EXEC GetDepartments")
+                //.ToListAsync();
+                //.ExecuteSqlInterpolatedAsync($"EXEC GetDepartments");
 
-            return department;
+                if (affectedRows > 0)
+                {
+                    await _context.SaveChangesAsync(); // Save changes to the database
+                    OkMessage okMessage = new OkMessage() { Message = "Created" };
+                    return Ok(okMessage);
+                }
+                else
+                {
+                    // Return not found, if there no item found
+                    return NotFound("No changes applied.");
+                }
+            }
+            catch (SqlException sqlEx)
+            {
+                // Log the SQL exception details
+                return StatusCode(500, $"SQL Exception: {sqlEx.Message}");
+            }
+            catch (Exception ex)
+            {
+                // Log the general exception details
+                return BadRequest($"An error occurred: {ex.Message}");
+            }
         }
 
         // PUT: api/Departments/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
         public async Task<IActionResult> PutDepartment(int id, Department department)
         {
@@ -73,28 +121,19 @@ namespace ORM_Code_First_API.Controllers
             return NoContent();
         }
 
-        // POST: api/Departments
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Department>> PostDepartment(Department department)
-        {
-            _context.Department.Add(department);
-            await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetDepartment", new { id = department.Id }, department);
-        }
 
         // DELETE: api/Departments/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDepartment(int id)
         {
-            var department = await _context.Department.FindAsync(id);
+            var department = await _context.Departments.FindAsync(id);
             if (department == null)
             {
                 return NotFound();
             }
 
-            _context.Department.Remove(department);
+            _context.Departments.Remove(department);
             await _context.SaveChangesAsync();
 
             return NoContent();
@@ -102,7 +141,7 @@ namespace ORM_Code_First_API.Controllers
 
         private bool DepartmentExists(int id)
         {
-            return _context.Department.Any(e => e.Id == id);
+            return _context.Departments.Any(e => e.Id == id);
         }
     }
 }
